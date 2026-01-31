@@ -1,13 +1,25 @@
 import PyPDF2
 import re
-from ..resources.skills_list import SK
+import logging
+from ..resources.skills_list import SKILLS_LIST
 
+logger = logging.getLogger(__name__)
 
 class ResumeParser:
     """
     A class to parse resumes from PDF files, extracting text,
     skills, and contact information.
     """
+
+    _all_skills_cache = None
+    _cache_valid = False
+
+    @classmethod
+    def invalidate_skills_cache(cls):
+        """
+        Invalidates the skills cache when SKILLS_LIST is updated
+        """
+        cls._cache_valid = False
 
     def __init__(self, pdf_path):
         """
@@ -32,11 +44,23 @@ class ResumeParser:
                     text += page.extract_text() or ""
                 return text.lower()  # Standardize to lowercase
         except FileNotFoundError:
-            print(f"Error: The file '{self.pdf_path}' was not found.")
+            logger.error(f"Error: The file '{self.pdf_path}' was not found.")
             return ""
         except Exception as e:
-            print(f"An error occurred while reading the PDF: {e}")
+            logger.error(f"An error occurred while reading the PDF: {e}")
             return ""
+
+    @classmethod
+    def get_skill_items(cls):
+        """
+        Flattens the SKILLS_LIST dictionary into a single list of skills
+        Returns a list of all skills in the dictionary
+        """
+        if not cls._cache_valid:
+            cls._all_skills_cache = [skill for skills in SKILLS_LIST.values() for skill in skills]
+            cls._cache_valid = True
+            
+        return cls._all_skills_cache
 
     def get_skills(self):
         """
@@ -47,11 +71,13 @@ class ResumeParser:
         """
         if not self.text:
             return []
+            
+        all_skills = self.get_skill_items()
 
         found_skills = set()
-        for skill in SKILLS_LIST:
+        for skill in all_skills:
             # Use regex for whole word matching to avoid partial matches (e.g., 'java' in 'javascript')
-            if re.search(r'\b' + re.escape(skill) + r'\b', self.text):
+            if re.search(r'\b' + re.escape(skill.lower()) + r'\b', self.text):
                 found_skills.add(skill)
         return list(found_skills)
 

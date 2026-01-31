@@ -1,5 +1,7 @@
-from parsers.resume_parser import ResumeParser
+import logging
+from .parsers.resume_parser import ResumeParser
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def main():
     """Main function to run the application."""
